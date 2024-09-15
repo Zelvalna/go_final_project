@@ -13,31 +13,26 @@ import (
 // SingInHandler проверка пароля и возврат JWT токена
 func SingInHandler(w http.ResponseWriter, r *http.Request) {
 	var signData constans.SignInRequest
+	// Декодируем запрос с паролем
 	if err := json.NewDecoder(r.Body).Decode(&signData); err != nil {
 		setErrorResponse(w, "invalid request", err)
 	}
 
 	storedPassword := os.Getenv("TODO_PASSWORD")
-	if signData.Password == storedPassword {
-		jwtInstance := jwt.New(jwt.SigningMethodHS256)
-		token, err := jwtInstance.SignedString([]byte(storedPassword))
-		log.Println(token + " token из sign")
-		taskData, err := json.Marshal(constans.SignInResponse{Token: token})
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(taskData)
+	if storedPassword != signData.Password || storedPassword == "" {
+		http.Error(w, `{"error": "Неверный пароль"}`, http.StatusUnauthorized)
+		return
+	}
 
-		if err != nil {
-			http.Error(w, fmt.Errorf("error: %w", err).Error(), http.StatusUnauthorized)
-		}
-	} else {
-		errorResponse := constans.ErrorResponse{Error: "Неверный пароль"}
-		errorData, _ := json.Marshal(errorResponse)
-		w.WriteHeader(http.StatusUnauthorized)
-		_, err := w.Write(errorData)
-
-		if err != nil {
-			http.Error(w, fmt.Errorf("error: %w", err).Error(), http.StatusUnauthorized)
-		}
+	token := jwt.New(jwt.SigningMethodHS256)
+	tokenString, err := token.SignedString([]byte(storedPassword))
+	log.Println(tokenString, err)
+	if err != nil {
+		http.Error(w, "Ошибка при создании токена", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]string{"token": tokenString}); err != nil {
+		http.Error(w, fmt.Errorf("error: %w", err).Error(), http.StatusUnauthorized)
 	}
 }

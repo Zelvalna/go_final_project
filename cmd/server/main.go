@@ -34,6 +34,8 @@ func main() {
 	envPort := os.Getenv("TODO_PORT")
 	if len(envPort) == 0 {
 		envPort = port
+	} else {
+		port = envPort
 	}
 
 	// Путь к директории с веб-файлами
@@ -52,14 +54,7 @@ func main() {
 	r.Delete("/api/task", middleware.Auth(handlers.TaskHandler))
 	r.Post("/api/signin", handlers.SingInHandler)
 
-	//r.Post("/api/task", handlers.TaskHandler)
-	//r.Get("/api/tasks", handlers.TaskHandler)
-	//r.Get("/api/task", handlers.TaskByIdGet)
-	//r.Put("/api/task", handlers.TaskHandler)
-	//r.Post("/api/task/done", handlers.TaskDonePost)
-	//r.Delete("/api/task", handlers.TaskHandler)
-
 	// Запуск сервера
-	log.Printf("Сервер запущен на порту %s", port)
+	log.Printf("Сервер запущен на порту %v", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }

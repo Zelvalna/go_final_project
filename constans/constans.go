@@ -1,7 +1,5 @@
 package constans
 
-import "github.com/golang-jwt/jwt"
-
 const (
 	DefPort = "7540"
 	WebDir  = "./web"
@@ -28,12 +26,4 @@ type Tasks struct {
 }
 type SignInRequest struct {
 	Password string `json:"password"`
-}
-
-type SignInResponse struct {
-	Token string `json:"token,omitempty"`
-}
-type Claims struct {
-	PasswordHash string `json:"password_hash"`
-	jwt.StandardClaims
 }

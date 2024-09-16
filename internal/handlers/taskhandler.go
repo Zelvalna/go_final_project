@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -46,14 +45,8 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 func TaskAddPost(w http.ResponseWriter, r *http.Request) {
 	var taskData constans.Task
 
-	var buffer bytes.Buffer
-	// Чтение тела запроса
-	if _, err := buffer.ReadFrom(r.Body); err != nil {
-		setErrorResponse(w, "body getting error", err)
-		return
-	}
-	// Десериализация JSON в структуру Task
-	if err := json.Unmarshal(buffer.Bytes(), &taskData); err != nil {
+	// Декодирование JSON тела запроса
+	if err := json.NewDecoder(r.Body).Decode(&taskData); err != nil {
 		setErrorResponse(w, "JSON deserialization error", err)
 		return
 	}
@@ -90,49 +83,45 @@ func TaskAddPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Возвращение ID созданной задачи
-	taskIdData, err := json.Marshal(constans.TaskIdResponse{Id: taskId})
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(taskIdData)
-	if err != nil {
-		setErrorResponse(w, "writing task id error", err)
+	jsonResponse(w, http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(constans.TaskIdResponse{Id: taskId}); err != nil {
+		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
-
 	log.Println(fmt.Sprintf("Added task with id=%d", taskId))
+}
+
+func jsonResponse(w http.ResponseWriter, status int) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
 }
 
 func TasksReadGet(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 
-	var tasks []constans.Task
-
-	if len(search) > 0 {
-		date, err := time.Parse("02.01.2006", search)
-		if err != nil {
-			tasks, err = storage.SearchTasks(search)
-		} else {
-			tasks, err = storage.SearchTasksByDate(date.Format(constans.DatePat))
-		}
-	} else {
-		err := errors.New("")
-		tasks, err = storage.ReadTasks()
-		if err != nil {
-			setErrorResponse(w, "failed to get tasks", err)
-			return
-		}
+	tasks, err := fetchTasks(search)
+	if err != nil {
+		setErrorResponse(w, "failed to get tasks", err)
+		return
 	}
 
-	tasksData, err := json.Marshal(constans.Tasks{Tasks: tasks})
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(tasksData)
-	if err != nil {
-		setErrorResponse(w, "writing tasks error", err)
+	jsonResponse(w, http.StatusOK)
+	if err := json.NewEncoder(w).Encode(constans.Tasks{Tasks: tasks}); err != nil {
+		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
 
 	log.Println(fmt.Sprintf("Read %d tasks", len(tasks)))
+}
+
+func fetchTasks(search string) ([]constans.Task, error) {
+	if len(search) > 0 {
+		if date, err := time.Parse("02.01.2006", search); err == nil {
+			return storage.SearchTasksByDate(date.Format(constans.DatePat))
+		}
+		return storage.SearchTasks(search)
+	}
+	return storage.ReadTasks()
 }
 
 func TaskByIdGet(w http.ResponseWriter, r *http.Request) {
@@ -143,12 +132,9 @@ func TaskByIdGet(w http.ResponseWriter, r *http.Request) {
 		setErrorResponse(w, "failed to get task by id", err)
 		return
 	}
-	taskData, err := json.Marshal(task)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(taskData)
-	if err != nil {
-		setErrorResponse(w, "writing task error", err)
+	jsonResponse(w, http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(task); err != nil {
+		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
 
@@ -156,15 +142,10 @@ func TaskByIdGet(w http.ResponseWriter, r *http.Request) {
 }
 func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 	var task constans.Task
-	var buffer bytes.Buffer
 
-	if _, err := buffer.ReadFrom(r.Body); err != nil {
-		setErrorResponse(w, "body getting error", err)
-		return
-	}
-
-	if err := json.Unmarshal(buffer.Bytes(), &task); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		setErrorResponse(w, "JSON deserialization error", err)
+		return
 	}
 	if len(task.ID) == 0 {
 		setErrorResponse(w, "invalid id", errors.New("id is empty"))
@@ -194,12 +175,10 @@ func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 		setErrorResponse(w, "failed to update task", errors.New("failed to update task"))
 		return
 	}
-	taskData, err := json.Marshal(task)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(taskData)
-	if err != nil {
-		setErrorResponse(w, "updating task error", err)
+
+	jsonResponse(w, http.StatusOK)
+	if err := json.NewEncoder(w).Encode(task); err != nil {
+		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
 
@@ -235,17 +214,9 @@ func TaskDonePost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Возвращаем обновлённую задачу
-	taskData, err := json.Marshal(struct{}{})
-	if err != nil {
-		setErrorResponse(w, "JSON serialization error", err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(taskData)
-	if err != nil {
-		setErrorResponse(w, "writing task error", err)
+	jsonResponse(w, http.StatusOK)
+	if err := json.NewEncoder(w).Encode(struct{}{}); err != nil {
+		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
 
@@ -261,12 +232,10 @@ func TaskDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	taskData, err := json.Marshal(struct{}{})
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(taskData)
-	if err != nil {
-		setErrorResponse(w, "writing task error", err)
+	jsonResponse(w, http.StatusOK)
+	if err := json.NewEncoder(w).Encode(struct{}{}); err != nil {
+		setErrorResponse(w, "failed to encode response", err)
+		return
 	}
 	log.Println(fmt.Sprintf("Deleted task with id=%s", id))
 }

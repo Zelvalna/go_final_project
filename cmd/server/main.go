@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/Zelvalna/go_final_project/config"
-
 	"github.com/Zelvalna/go_final_project/internal/handlers"
 	"github.com/Zelvalna/go_final_project/internal/middleware"
 	"github.com/Zelvalna/go_final_project/internal/storage"

@@ -3,16 +3,18 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Zelvalna/go_final_project/constans"
-	"github.com/golang-jwt/jwt"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/Zelvalna/go_final_project/model"
+
+	"github.com/golang-jwt/jwt"
 )
 
 // SingInHandler проверка пароля и возврат JWT токена
 func SingInHandler(w http.ResponseWriter, r *http.Request) {
-	var signData constans.SignInRequest
+	var signData model.SignInRequest
 	// Декодируем запрос с паролем
 	if err := json.NewDecoder(r.Body).Decode(&signData); err != nil {
 		setErrorResponse(w, "invalid request", err)

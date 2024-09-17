@@ -1,19 +1,20 @@
-package utils
+package dates
 
 import (
 	"errors"
-	"github.com/Zelvalna/go_final_project/constans"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Zelvalna/go_final_project/model"
 )
 
 // GetNextDate вычисляет следующую дату на основе текущей даты, исходной даты и правила повторения
 func GetNextDate(now time.Time, dateStr string, repeat string) (string, error) {
 	// Парсим строку с датой в объект времени
 	// Парсим строку с датой в объект времени
-	date, err := time.Parse(constans.DatePat, dateStr)
+	date, err := time.Parse(model.DatePat, dateStr)
 	if err != nil {
 		return "", errors.New("неверный формат даты")
 	}
@@ -94,7 +95,7 @@ func GetNextDate(now time.Time, dateStr string, repeat string) (string, error) {
 				}
 				if isSliceHas(allowDaysInMonth, date.Day()) &&
 					date.After(now) {
-					return date.Format(constans.DatePat), nil
+					return date.Format(model.DatePat), nil
 				}
 				date = date.AddDate(0, 0, 1)
 			}
@@ -104,7 +105,7 @@ func GetNextDate(now time.Time, dateStr string, repeat string) (string, error) {
 		return "", errors.New("неверный формат повтора")
 	}
 
-	return date.Format(constans.DatePat), nil
+	return date.Format(model.DatePat), nil
 }
 
 // parseDays разбирает строку с днями в формате, поддерживаемом повторением

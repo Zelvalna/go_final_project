@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/Zelvalna/go_final_project/constans"
-	"github.com/Zelvalna/go_final_project/internal/utils"
 	"net/http"
 	"time"
+
+	"github.com/Zelvalna/go_final_project/model"
 )
 
 func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 	// Получаем параметр "now" из запроса и парсим его
-	now, err := time.Parse(constans.DatePat, r.FormValue("now"))
+	now, err := time.Parse(model.DatePat, r.FormValue("now"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

@@ -4,18 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Zelvalna/go_final_project/constans"
-	"github.com/Zelvalna/go_final_project/internal/storage"
-	"github.com/Zelvalna/go_final_project/internal/utils"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/Zelvalna/go_final_project/internal/storage"
+	dates "github.com/Zelvalna/go_final_project/internal/utils"
+	"github.com/Zelvalna/go_final_project/model"
 )
 
 // setErrorResponse Функция для создания и отправки ответа об ошибке
 func setErrorResponse(w http.ResponseWriter, s string, err error) {
-	errorResponse := constans.ErrorResponse{
+	errorResponse := model.ErrorResponse{
 		Error: fmt.Errorf("%s: %w", s, err).Error()}
 
 	// Сериализация ответа об ошибке
@@ -43,7 +44,7 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func TaskAddPost(w http.ResponseWriter, r *http.Request) {
-	var taskData constans.Task
+	var taskData model.Task
 
 	// Декодирование JSON тела запроса
 	if err := json.NewDecoder(r.Body).Decode(&taskData); err != nil {
@@ -52,16 +53,16 @@ func TaskAddPost(w http.ResponseWriter, r *http.Request) {
 	}
 	// Установка даты по умолчанию или проверка формата даты
 	if len(taskData.Date) == 0 {
-		taskData.Date = time.Now().Format(constans.DatePat)
+		taskData.Date = time.Now().Format(model.DatePat)
 	} else {
-		date, err := time.Parse(constans.DatePat, taskData.Date)
+		date, err := time.Parse(model.DatePat, taskData.Date)
 		if err != nil {
 			setErrorResponse(w, "bad data format", err)
 			return
 		}
 
 		if date.Before(time.Now()) {
-			taskData.Date = time.Now().Format(constans.DatePat)
+			taskData.Date = time.Now().Format(model.DatePat)
 		}
 	}
 	// Проверка заголовка задачи
@@ -71,7 +72,7 @@ func TaskAddPost(w http.ResponseWriter, r *http.Request) {
 	}
 	// Проверка формата повтора
 	if len(taskData.Repeat) > 0 {
-		if _, err := utils.GetNextDate(time.Now(), taskData.Date, taskData.Repeat); err != nil {
+		if _, err := dates.GetNextDate(time.Now(), taskData.Date, taskData.Repeat); err != nil {
 			setErrorResponse(w, "invalid repeat format", errors.New("no such format"))
 			return
 		}
@@ -84,7 +85,7 @@ func TaskAddPost(w http.ResponseWriter, r *http.Request) {
 	}
 	// Возвращение ID созданной задачи
 	jsonResponse(w, http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(constans.TaskIdResponse{Id: taskId}); err != nil {
+	if err := json.NewEncoder(w).Encode(model.TaskIdResponse{Id: taskId}); err != nil {
 		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
@@ -106,7 +107,7 @@ func TasksReadGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, http.StatusOK)
-	if err := json.NewEncoder(w).Encode(constans.Tasks{Tasks: tasks}); err != nil {
+	if err := json.NewEncoder(w).Encode(model.Tasks{Tasks: tasks}); err != nil {
 		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
@@ -114,10 +115,10 @@ func TasksReadGet(w http.ResponseWriter, r *http.Request) {
 	log.Println(fmt.Sprintf("Read %d tasks", len(tasks)))
 }
 
-func fetchTasks(search string) ([]constans.Task, error) {
+func fetchTasks(search string) ([]model.Task, error) {
 	if len(search) > 0 {
 		if date, err := time.Parse("02.01.2006", search); err == nil {
-			return storage.SearchTasksByDate(date.Format(constans.DatePat))
+			return storage.SearchTasksByDate(date.Format(model.DatePat))
 		}
 		return storage.SearchTasks(search)
 	}
@@ -141,7 +142,7 @@ func TaskByIdGet(w http.ResponseWriter, r *http.Request) {
 	log.Println(fmt.Sprintf("Read task with id=%s", id))
 }
 func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
-	var task constans.Task
+	var task model.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		setErrorResponse(w, "JSON deserialization error", err)
@@ -155,7 +156,7 @@ func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 		setErrorResponse(w, "invalid id", err)
 		return
 	}
-	if _, err := time.Parse(constans.DatePat, task.Date); err != nil {
+	if _, err := time.Parse(model.DatePat, task.Date); err != nil {
 		setErrorResponse(w, "invalid date format", err)
 		return
 	}
@@ -164,7 +165,7 @@ func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(task.Repeat) > 0 {
-		if _, err := utils.GetNextDate(time.Now(), task.Date, task.Repeat); err != nil {
+		if _, err := dates.GetNextDate(time.Now(), task.Date, task.Repeat); err != nil {
 			setErrorResponse(w, "invalid repeat format", errors.New("no such format"))
 			return
 		}
@@ -181,8 +182,6 @@ func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 		setErrorResponse(w, "failed to encode response", err)
 		return
 	}
-
-	log.Println(fmt.Sprintf("Updated task with id=%s", task.ID))
 
 }
 func TaskDonePost(w http.ResponseWriter, r *http.Request) {
@@ -201,7 +200,7 @@ func TaskDonePost(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Println(fmt.Sprintf("task with id=%s was deleted", task.ID))
 	} else {
-		task.Date, err = utils.GetNextDate(time.Now(), task.Date, task.Repeat)
+		task.Date, err = dates.GetNextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
 			setErrorResponse(w, "failed to get next date", err)
 			return

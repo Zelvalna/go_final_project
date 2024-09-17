@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/Zelvalna/go_final_project/constans"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
+
+	"github.com/Zelvalna/go_final_project/model"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var db *sqlx.DB
@@ -68,7 +69,7 @@ func createTable(db *sqlx.DB) error {
 }
 
 // InsertTask добавляет новую задачу в базу данных
-func InsertTask(task constans.Task) (int, error) {
+func InsertTask(task model.Task) (int, error) {
 	if db == nil {
 		return 0, errors.New("database not initialized")
 	}
@@ -92,110 +93,110 @@ func InsertTask(task constans.Task) (int, error) {
 }
 
 // ReadTasks читает все задачи из базы данных, ограничивая результат 15 записями
-func ReadTasks() ([]constans.Task, error) {
-	var tasks []constans.Task
+func ReadTasks() ([]model.Task, error) {
+	var tasks []model.Task
 
 	rows, err := db.Query("SELECT * FROM scheduler ORDER BY date")
 	if err != nil {
-		return []constans.Task{}, err
+		return []model.Task{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var task constans.Task
+		var task model.Task
 		if err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
-			return []constans.Task{}, err
+			return []model.Task{}, err
 		}
 		tasks = append(tasks, task)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []constans.Task{}, err
+		return []model.Task{}, err
 	}
 
 	if tasks == nil {
-		tasks = []constans.Task{}
+		tasks = []model.Task{}
 	}
 
 	return tasks, nil
 }
 
 // SearchTasks ищет задачи по заголовку или комментарию
-func SearchTasks(search string) ([]constans.Task, error) {
-	var tasks []constans.Task
+func SearchTasks(search string) ([]model.Task, error) {
+	var tasks []model.Task
 
 	search = fmt.Sprintf("%%%s%%", search)
 	rows, err := db.Query("SELECT * FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date",
 		sql.Named("search", search))
 	if err != nil {
-		return []constans.Task{}, err
+		return []model.Task{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var task constans.Task
+		var task model.Task
 		if err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
-			return []constans.Task{}, err
+			return []model.Task{}, err
 		}
 		tasks = append(tasks, task)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []constans.Task{}, err
+		return []model.Task{}, err
 	}
 
 	if tasks == nil {
-		tasks = []constans.Task{}
+		tasks = []model.Task{}
 	}
 
 	return tasks, nil
 }
 
 // SearchTasksByDate ищет задачи по дате
-func SearchTasksByDate(date string) ([]constans.Task, error) {
-	var tasks []constans.Task
+func SearchTasksByDate(date string) ([]model.Task, error) {
+	var tasks []model.Task
 
 	rows, err := db.Query("SELECT * FROM scheduler WHERE date = :date",
 		sql.Named("date", date))
 	if err != nil {
-		return []constans.Task{}, err
+		return []model.Task{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var task constans.Task
+		var task model.Task
 		if err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
-			return []constans.Task{}, err
+			return []model.Task{}, err
 		}
 		tasks = append(tasks, task)
 	}
 
 	if err := rows.Err(); err != nil {
-		return []constans.Task{}, err
+		return []model.Task{}, err
 	}
 
 	if tasks == nil {
-		tasks = []constans.Task{}
+		tasks = []model.Task{}
 	}
 
 	return tasks, nil
 }
 
 // ReadTaskById читает задачу по ID
-func ReadTaskById(id string) (constans.Task, error) {
-	var task constans.Task
+func ReadTaskById(id string) (model.Task, error) {
+	var task model.Task
 
 	row := db.QueryRow("SELECT * FROM scheduler WHERE id = :id",
 		sql.Named("id", id))
 	if err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
-		return constans.Task{}, err
+		return model.Task{}, err
 	}
 
 	return task, nil
 }
 
 // UpdateTask обновляет задачу по ID
-func UpdateTask(task constans.Task) (constans.Task, error) {
+func UpdateTask(task model.Task) (model.Task, error) {
 
 	result, err := db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
 		sql.Named("date", task.Date),
@@ -204,16 +205,16 @@ func UpdateTask(task constans.Task) (constans.Task, error) {
 		sql.Named("repeat", task.Repeat),
 		sql.Named("id", task.ID))
 	if err != nil {
-		return constans.Task{}, err
+		return model.Task{}, err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return constans.Task{}, err
+		return model.Task{}, err
 	}
 
 	if rowsAffected == 0 {
-		return constans.Task{}, errors.New("failed to update")
+		return model.Task{}, errors.New("failed to update")
 	}
 
 	return task, nil

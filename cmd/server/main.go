@@ -1,15 +1,17 @@
 package main
 
 import (
-	"github.com/Zelvalna/go_final_project/constans"
-	"github.com/Zelvalna/go_final_project/internal/handlers"
-	"github.com/Zelvalna/go_final_project/internal/middleware"
-	"github.com/Zelvalna/go_final_project/internal/storage"
-	"github.com/go-chi/chi/v5"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/Zelvalna/go_final_project/internal/handlers"
+	"github.com/Zelvalna/go_final_project/internal/middleware"
+	"github.com/Zelvalna/go_final_project/internal/storage"
+	"github.com/Zelvalna/go_final_project/model"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -24,12 +26,11 @@ func main() {
 
 	// Проверяем, установлен ли пароль в переменной окружения TODO_PASSWORD
 	password := os.Getenv("TODO_PASSWORD")
-	log.Println(password)
 	if password == "" {
 		log.Fatal("TODO_PASSWORD environment variable is required")
 	}
 	// установка порта по умолчанию
-	port := constans.DefPort
+	port := model.DefPort
 	// Проверка переменной окружения TODO_PORT для переопределения порта
 	envPort := os.Getenv("TODO_PORT")
 	if len(envPort) == 0 {
@@ -39,7 +40,7 @@ func main() {
 	}
 
 	// Путь к директории с веб-файлами
-	webDir := constans.WebDir
+	webDir := model.WebDir
 	fs := http.FileServer(http.Dir(webDir))
 
 	r := chi.NewRouter()

@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"github.com/golang-jwt/jwt"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/golang-jwt/jwt"
 )
 
 // Auth проверяет JWT токен

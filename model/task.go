@@ -1,4 +1,4 @@
-package constans
+package model
 
 const (
 	DefPort = "7540"

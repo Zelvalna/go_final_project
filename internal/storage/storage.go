@@ -40,6 +40,7 @@ func InitDB() (*sqlx.DB, error) {
 	// Открываем соединение с базой данных
 	db, err = sqlx.Open("sqlite3", dbFile)
 	if err != nil {
+		log.Fatalf("Error opening database: %v", err)
 		return nil, err
 	}
 
@@ -96,7 +97,7 @@ func InsertTask(task model.Task) (int, error) {
 func ReadTasks() ([]model.Task, error) {
 	var tasks []model.Task
 
-	rows, err := db.Query("SELECT * FROM scheduler ORDER BY date")
+	rows, err := db.Query("SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date")
 	if err != nil {
 		return []model.Task{}, err
 	}
@@ -125,9 +126,15 @@ func ReadTasks() ([]model.Task, error) {
 func SearchTasks(search string) ([]model.Task, error) {
 	var tasks []model.Task
 
+	query := `SELECT id, date, title, comment, repeat 
+		FROM scheduler 
+		WHERE title LIKE :search OR comment LIKE :search 
+		ORDER BY date 
+		LIMIT 10
+	`
 	search = fmt.Sprintf("%%%s%%", search)
-	rows, err := db.Query("SELECT * FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date",
-		sql.Named("search", search))
+	rows, err := db.Query(query, sql.Named("search", search))
+
 	if err != nil {
 		return []model.Task{}, err
 	}
@@ -156,7 +163,7 @@ func SearchTasks(search string) ([]model.Task, error) {
 func SearchTasksByDate(date string) ([]model.Task, error) {
 	var tasks []model.Task
 
-	rows, err := db.Query("SELECT * FROM scheduler WHERE date = :date",
+	rows, err := db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date LIMIT 10",
 		sql.Named("date", date))
 	if err != nil {
 		return []model.Task{}, err
@@ -183,10 +190,10 @@ func SearchTasksByDate(date string) ([]model.Task, error) {
 }
 
 // ReadTaskById читает задачу по ID
-func ReadTaskById(id string) (model.Task, error) {
+func GetTaskById(id string) (model.Task, error) {
 	var task model.Task
 
-	row := db.QueryRow("SELECT * FROM scheduler WHERE id = :id",
+	row := db.QueryRow("SELECT id, date, title, comment, repeat FROM scheduler WHERE id = :id",
 		sql.Named("id", id))
 	if err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat); err != nil {
 		return model.Task{}, err

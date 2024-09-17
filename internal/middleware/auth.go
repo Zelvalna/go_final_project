@@ -3,17 +3,17 @@ package middleware
 import (
 	"log"
 	"net/http"
-	"os"
+
+	"github.com/Zelvalna/go_final_project/config"
 
 	"github.com/golang-jwt/jwt"
 )
 
 // Auth проверяет JWT токен
-func Auth(nextHandler http.HandlerFunc) http.HandlerFunc {
+func Auth(nextHandler http.HandlerFunc, cfg config.Config) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//получаем переменную окружения
-		storedPassword := os.Getenv("TODO_PASSWORD")
-		if len(storedPassword) > 0 {
+		if len(cfg.TodoPassword) > 0 {
 
 			// получаем куку с токеном
 			var tokenString string
@@ -24,7 +24,7 @@ func Auth(nextHandler http.HandlerFunc) http.HandlerFunc {
 			}
 			tokenString = cookie.Value
 			jwtInstance := jwt.New(jwt.SigningMethodHS256)
-			token, err := jwtInstance.SignedString([]byte(storedPassword))
+			token, err := jwtInstance.SignedString([]byte(cfg.TodoPassword))
 			log.Println(token + " token из AUTH")
 			if tokenString != token {
 				http.Error(w, "Authentication failed", http.StatusUnauthorized)

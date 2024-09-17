@@ -128,7 +128,7 @@ func fetchTasks(search string) ([]model.Task, error) {
 func TaskByIdGet(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
-	task, err := storage.ReadTaskById(id)
+	task, err := storage.GetTaskById(id)
 	if err != nil {
 		setErrorResponse(w, "failed to get task by id", err)
 		return
@@ -156,9 +156,17 @@ func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 		setErrorResponse(w, "invalid id", err)
 		return
 	}
-	if _, err := time.Parse(model.DatePat, task.Date); err != nil {
+	parseDate, err := time.Parse(model.DatePat, task.Date)
+	if err != nil {
 		setErrorResponse(w, "invalid date format", err)
 		return
+	}
+	if parseDate.Before(time.Now()) {
+		// как в создании задачи
+		task.Date = time.Now().Format(model.DatePat)
+		// либо второй вариант
+		// setErrorResponse(w, "invalid date format", errors.New("date can't be in the past"))
+		// return
 	}
 	if len(task.Title) == 0 {
 		setErrorResponse(w, "invalid title", errors.New("title is empty"))
@@ -171,7 +179,7 @@ func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err := storage.UpdateTask(task)
+	_, err = storage.UpdateTask(task)
 	if err != nil {
 		setErrorResponse(w, "failed to update task", errors.New("failed to update task"))
 		return
@@ -186,7 +194,7 @@ func TaskUpdatePut(w http.ResponseWriter, r *http.Request) {
 }
 func TaskDonePost(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
-	task, err := storage.ReadTaskById(id)
+	task, err := storage.GetTaskById(id)
 	if err != nil {
 		setErrorResponse(w, "failed to get task by id", err)
 		return

@@ -1,9 +1,11 @@
 package handlers
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"time"
+
+	dates "github.com/Zelvalna/go_final_project/internal/utils"
 
 	"github.com/Zelvalna/go_final_project/model"
 )
@@ -20,7 +22,7 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 	repeat := r.FormValue("repeat")
 
 	// Вычисляем следующую дату с помощью функции NextDate
-	nextDate, err := utils.GetNextDate(now, date, repeat)
+	nextDate, err := dates.GetNextDate(now, date, repeat)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -31,6 +33,6 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write([]byte(nextDate))
 
 	if err != nil {
-		http.Error(w, fmt.Errorf("writing tasks data error: %w", err).Error(), http.StatusInternalServerError)
+		log.Printf("writing tasks data error: %v", err)
 	}
 }

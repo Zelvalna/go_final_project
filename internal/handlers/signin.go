@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+
+	"github.com/Zelvalna/go_final_project/config"
 
 	"github.com/Zelvalna/go_final_project/model"
 
@@ -13,21 +14,21 @@ import (
 )
 
 // SingInHandler проверка пароля и возврат JWT токена
-func SingInHandler(w http.ResponseWriter, r *http.Request) {
+func SingInHandler(w http.ResponseWriter, r *http.Request, cfg config.Config) {
 	var signData model.SignInRequest
 	// Декодируем запрос с паролем
 	if err := json.NewDecoder(r.Body).Decode(&signData); err != nil {
 		setErrorResponse(w, "invalid request", err)
 	}
+	// Раз в auth изменили и тут изменим
 
-	storedPassword := os.Getenv("TODO_PASSWORD")
-	if storedPassword != signData.Password || storedPassword == "" {
+	if cfg.TodoPassword != signData.Password || cfg.TodoPassword == "" {
 		http.Error(w, `{"error": "Неверный пароль"}`, http.StatusUnauthorized)
 		return
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
-	tokenString, err := token.SignedString([]byte(storedPassword))
+	tokenString, err := token.SignedString([]byte(cfg.TodoPassword))
 	log.Println(tokenString, err)
 	if err != nil {
 		http.Error(w, "Ошибка при создании токена", http.StatusInternalServerError)
